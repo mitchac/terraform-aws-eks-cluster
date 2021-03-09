@@ -24,13 +24,11 @@
 # https://stackoverflow.com/questions/58232731/kubectl-missing-form-terraform-cloud
 # https://docs.aws.amazon.com/cli/latest/userguide/install-bundle.html
 # https://docs.aws.amazon.com/cli/latest/userguide/install-cliv1.html
-
+# https://github.com/terraform-aws-modules/terraform-aws-eks/issues/817
+# https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs#stacking-with-managed-kubernetes-cluster-resources
 
 locals {
-  certificate_authority_data_list          = coalescelist(aws_eks_cluster.default.*.certificate_authority, [[{ data : "" }]])
-  certificate_authority_data_list_internal = local.certificate_authority_data_list[0]
-  certificate_authority_data_map           = local.certificate_authority_data_list_internal[0]
-  certificate_authority_data               = local.certificate_authority_data_map["data"]
+  enabled = module.this.enabled
 
   # Add worker nodes role ARNs (could be from many un-managed worker groups) to the ConfigMap
   # Note that we don't need to do this for managed Node Groups since EKS adds their roles to the ConfigMap automatically
@@ -47,21 +45,20 @@ locals {
 }
 
 resource "null_resource" "wait_for_cluster" {
-  count      = local.enabled && var.apply_config_map_aws_auth ? 1 : 0
-  depends_on = [aws_eks_cluster.default[0]]
+  count = local.enabled && var.apply_config_map_aws_auth ? 1 : 0
 
   provisioner "local-exec" {
     command     = var.wait_for_cluster_command
     interpreter = var.local_exec_interpreter
     environment = {
-      ENDPOINT = aws_eks_cluster.default[0].endpoint
+      ENDPOINT = var.cluster_endpoint
     }
   }
 }
 
 data "aws_eks_cluster" "eks" {
   count = local.enabled && var.apply_config_map_aws_auth ? 1 : 0
-  name  = join("", aws_eks_cluster.default.*.id)
+  name  = var.cluster_id
 }
 
 # Get an authentication token to communicate with the EKS cluster.
@@ -71,13 +68,7 @@ data "aws_eks_cluster" "eks" {
 # https://www.terraform.io/docs/providers/aws/d/eks_cluster_auth.html
 data "aws_eks_cluster_auth" "eks" {
   count = local.enabled && var.apply_config_map_aws_auth ? 1 : 0
-  name  = join("", aws_eks_cluster.default.*.id)
-}
-
-provider "kubernetes" {
-  token                  = join("", data.aws_eks_cluster_auth.eks.*.token)
-  host                   = join("", data.aws_eks_cluster.eks.*.endpoint)
-  cluster_ca_certificate = base64decode(join("", data.aws_eks_cluster.eks.*.certificate_authority.0.data))
+  name  = var.cluster_id
 }
 
 resource "kubernetes_config_map" "aws_auth_ignore_changes" {

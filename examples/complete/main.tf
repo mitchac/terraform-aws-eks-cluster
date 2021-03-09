@@ -35,7 +35,7 @@ locals {
 
 module "vpc" {
   source  = "cloudposse/vpc/aws"
-  version = "0.17.0"
+  version = "0.21.1"
 
   cidr_block = "172.16.0.0/16"
   tags       = local.tags
@@ -45,7 +45,7 @@ module "vpc" {
 
 module "subnets" {
   source  = "cloudposse/dynamic-subnets/aws"
-  version = "0.28.0"
+  version = "0.38.0"
 
   availability_zones              = var.availability_zones
   vpc_id                          = module.vpc.vpc_id
@@ -59,7 +59,6 @@ module "subnets" {
 
   context = module.this.context
 }
-
 
 module "eks_cluster" {
   source = "../../"
@@ -90,7 +89,7 @@ data "null_data_source" "wait_for_cluster_and_kubernetes_configmap" {
 
 module "eks_node_group" {
   source  = "cloudposse/eks-node-group/aws"
-  version = "0.8.0"
+  version = "0.19.0"
 
   subnet_ids        = module.subnets.private_subnet_ids
   cluster_name      = data.null_data_source.wait_for_cluster_and_kubernetes_configmap.outputs["cluster_name"]

@@ -1,6 +1,11 @@
 locals {
   enabled = module.this.enabled
 
+  certificate_authority_data_list          = coalescelist(aws_eks_cluster.default.*.certificate_authority, [[{ data : "" }]])
+  certificate_authority_data_list_internal = local.certificate_authority_data_list[0]
+  certificate_authority_data_map           = local.certificate_authority_data_list_internal[0]
+  certificate_authority_data               = local.certificate_authority_data_map["data"]
+
   cluster_encryption_config = {
     resources        = var.cluster_encryption_config_resources
     provider_key_arn = local.enabled && var.cluster_encryption_config_enabled && var.cluster_encryption_config_kms_key_id == "" ? join("", aws_kms_key.cluster.*.arn) : var.cluster_encryption_config_kms_key_id
@@ -93,4 +98,25 @@ resource "aws_iam_openid_connect_provider" "default" {
   # it's thumbprint won't change for many years
   # https://github.com/terraform-providers/terraform-provider-aws/issues/10104
   thumbprint_list = ["9e99a48a9960b14926bb7f3b02e22da2b0ab7280"]
+}
+
+# Kubernetes auth config map
+module "kubernetes_config" {
+  source = "./modules/kubernetes-config"
+
+  count = local.enabled ? 1 : 0
+
+  cluster_endpoint                          = join("", aws_eks_cluster.default.*.endpoint)
+  cluster_id                                = join("", aws_eks_cluster.default.*.id)
+  apply_config_map_aws_auth                 = var.apply_config_map_aws_auth
+  kubernetes_config_map_ignore_role_changes = var.kubernetes_config_map_ignore_role_changes
+  wait_for_cluster_command                  = var.wait_for_cluster_command
+  local_exec_interpreter                    = var.local_exec_interpreter
+  map_additional_iam_roles                  = var.map_additional_iam_roles
+  map_additional_iam_users                  = var.map_additional_iam_users
+  map_additional_aws_accounts               = var.map_additional_aws_accounts
+
+  context = module.label.context
+
+  depends_on = [aws_eks_cluster.default[0]]
 }
