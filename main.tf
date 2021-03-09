@@ -104,8 +104,6 @@ resource "aws_iam_openid_connect_provider" "default" {
 module "kubernetes_config" {
   source = "./modules/kubernetes-config"
 
-  count = local.enabled ? 1 : 0
-
   cluster_endpoint                          = join("", aws_eks_cluster.default.*.endpoint)
   cluster_id                                = join("", aws_eks_cluster.default.*.id)
   apply_config_map_aws_auth                 = var.apply_config_map_aws_auth
@@ -117,6 +115,4 @@ module "kubernetes_config" {
   map_additional_aws_accounts               = var.map_additional_aws_accounts
 
   context = module.label.context
-
-  depends_on = [aws_eks_cluster.default[0]]
 }
