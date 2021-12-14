@@ -1,6 +1,6 @@
-region = "us-east-2"
+region = "us-east-1"
 
-availability_zones = ["us-east-2a", "us-east-2b"]
+availability_zones = ["us-east-1c", "us-east-1d"]
 
 namespace = "eg"
 
@@ -16,13 +16,13 @@ enabled_cluster_log_types = ["audit"]
 
 cluster_log_retention_period = 7
 
-instance_types = ["t3.small"]
+instance_types = ["c5.4xlarge"]
 
-desired_size = 2
+desired_size = 1
 
 max_size = 3
 
-min_size = 2
+min_size = 1
 
 kubernetes_labels = {}
 
