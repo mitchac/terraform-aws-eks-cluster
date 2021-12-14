@@ -86,8 +86,7 @@ module "eks_cluster" {
 }
 
 module "eks_node_group" {
-  source  = "cloudposse/eks-node-group/aws"
-  version = "0.27.0"
+  source  = "github.com/mitchac/terraform-aws-eks-node-group"
 
   subnet_ids        = module.subnets.public_subnet_ids
   cluster_name      = module.eks_cluster.eks_cluster_id
